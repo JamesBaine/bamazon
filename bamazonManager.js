@@ -20,7 +20,7 @@ var appStart = function(){
 		name: "menu",
 		type: "rawList",
 		message: "What would you like to do? [Quit with Q]",
-		choices:["view products", "view low inventory","add product", "Q"]
+		choices:["view products", "view low inventory","add inventory","add product", "Q"]
 	}]).then(function(answer){
 		if(answer.menu.toUpperCase()=="Q"){
 			process.exit();
@@ -32,8 +32,11 @@ var appStart = function(){
 		case "view low inventory":
 			lowInventory();
 			break;
+		case "add inventory":
+			addInventory();
+			break;
 		case "add product":
-			console.log("add");
+			console.log("add new");
 			break;
 		}
 	});
@@ -42,7 +45,7 @@ var appStart = function(){
 var viewProducts = function(){
 	connection.query("SELECT * FROM products", function(err,res){
 		for (var i = 0; i < res.length; i++){
-			console.log(res[i].itemid + " || " + res[i].productname + " || " + res[i].departmentname + " || " + res[i].price + " || " + res[i].stockquantity + "\n");
+			console.log(res[i].itemid + " || " + res[i].productname + " || " + res[i].department + " || " + res[i].price + " || " + res[i].stockquantity + "\n");
 		}
 		appStart(res);
 	});
@@ -52,9 +55,51 @@ var lowInventory = function(){
 	connection.query("SELECT * FROM products", function(err,res){
 		for (var i = 0; i < res.length; i++){
 			if( res[i].stockquantity <  5 ){
-				console.log(res[i].itemid + " || " + res[i].productname + " || " + res[i].departmentname + " || " +res[i].price + " || " +res[i].stockquantity + "\n");
+				console.log(res[i].itemid + " || " + res[i].productname + " || " + res[i].department + " || " +res[i].price + " || " +res[i].stockquantity + "\n");
 			}
 		}
 		appStart(res);
+	});
+};
+
+var addInventory = function(){
+	connection.query("SELECT * FROM products", function(err,res){
+		for (var i = 0; i < res.length; i++){
+			console.log(res[i].itemid + " || " + res[i].productname + " || " + res[i].department + " || " +res[i].price + " || " +res[i].stockquantity + "\n");
+		}
+		inquirer.prompt([{
+			type: "input",
+			name: "choice",
+			message: "Which items stock would you like to increase?[Quit with Q]"
+		}]).then(function(answer){
+			var correct = false;
+			if(answer.choice.toUpperCase()=="Q"){
+				process.exit();
+			}
+			for(var i = 0; i < res.length; i++){
+				if(res[i].productname == answer.choice){
+					correct = true;
+					var product = answer.choice;
+					var id = i;
+					inquirer.prompt([{
+						type: "input",
+						name: "quant",
+						message: "How many would like to add?",
+						validate: function(value){
+							if(isNaN(value) == false){
+								return true;
+							} else {
+								return false;
+							}
+						}
+					}]).then(function(answer){
+						connection.query("UPDATE products SET stockquantity='"+(res[id].stockquantity + parseInt(answer.quant))+"' WHERE productname='"+product+"'", function(err,res2){
+							console.log("Stock Updated!");
+							viewProducts();
+						});
+					});
+				}
+			}
+		});
 	});
 };
